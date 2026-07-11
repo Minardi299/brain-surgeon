@@ -95,8 +95,15 @@ overclaim to knowledgeable judges. Full detail in spec §7a.
 ## Status
 
 - [x] Design spec written and committed
-- [ ] Implementation plan (writing-plans)
+- [x] Implementation plan written — `docs/superpowers/plans/2026-07-11-danger-feature-tracker.md` (7 tasks, TDD)
 - [ ] Implementation
+
+**Plan summary (7 tasks):** 1) scaffold + config constants; 2) feature_catalog (pure TDD);
+3) populate watchlist from Neuronpedia (manual data + hand-verify); 4) analysis (pure TDD,
+synthetic tensors); 5) model_runner load+capture (GPU-gated); 6) model_runner intervention
+ablate/clamp/amplify (no-op invariant test); 7) Gradio app + presets + README.
+Pure modules are fully unit-tested; model modules use tests gated behind
+`RUN_MODEL_TESTS=1` + CUDA + gated-Gemma access.
 
 ## Ethics note
 
