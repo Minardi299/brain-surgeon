@@ -22,6 +22,59 @@ additionally requires an NVIDIA GPU with ~10 GB VRAM — the model and SAEs are 
 bf16/float32 sized for an RTX 3080. Without a GPU you can still install, run the pure test
 suite, and edit the feature catalog; you cannot launch the live dashboard.
 
+## Running locally on a CUDA GPU (offline after first download)
+
+The pure test suite runs on CPU-only torch, but launching the actual dashboard needs the
+model on the GPU. One-time setup on a CUDA machine (e.g. the RTX 3080 dev box):
+
+**1. Install a CUDA build of torch** (the default/CI install pulls CPU-only torch):
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"
+# cu124 runtime works under recent drivers via forward compat; use cu128 on the newest.
+uv pip install --python .venv/bin/python --reinstall-package torch \
+    torch --index-url https://download.pytorch.org/whl/cu124
+.venv/bin/python -c "import torch; print('cuda available:', torch.cuda.is_available())"  # -> True
+```
+
+**2. Authenticate to HuggingFace and accept the Gemma license (one time, needs internet):**
+
+- Accept the license at <https://huggingface.co/google/gemma-2-2b-it> (click *Agree*) with
+  the same HF account whose token you use below — the model is gated and the download 403s
+  until the license is accepted.
+- Log in with a token that has "read" access:
+
+```bash
+.venv/bin/huggingface-cli login   # paste your HF token
+```
+
+**3. First run downloads the weights (~5 GB model + the layer-20 SAE) into
+`~/.cache/huggingface`; every run after that is fully offline.** To *force* offline (so it
+never reaches for the network and fails fast if something isn't cached):
+
+```bash
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
+```
+
+**4. Launch the dashboard:**
+
+```bash
+.venv/bin/python -m danger_tracker.app
+# then open the printed URL, http://127.0.0.1:7860
+```
+
+**5. Run the full test suite, including the GPU-gated model/intervention tests:**
+
+```bash
+RUN_MODEL_TESTS=1 .venv/bin/python -m pytest -v
+```
+
+Notes for the 10 GB card: the model is bf16 and the SAE encodes in float32; keep
+`MAX_NEW_TOKENS` modest and the app clears the CUDA cache between runs. If you hit OOM,
+lower `MAX_NEW_TOKENS` in `config.py` or watch a single layer only (the catalog currently
+uses layer 20 → one SAE).
+
 ## Populate the watchlist
 
 Edit `config/feature_catalog.yaml` with feature IDs from Neuronpedia
