@@ -32,17 +32,17 @@ class ModelRunner:
                 release=config.SAE_RELEASE,
                 sae_id=config.sae_id_for_layer(layer),
                 device=device,
-                # Match the model's compute dtype (bf16 by default). Verified against
-                # installed sae_lens 6.45.3: SAE.from_pretrained's `dtype` type hint
-                # says `str`, but internally it calls `str_to_dtype(dtype)`, which
-                # passes a torch.dtype through unchanged, and the loader ends with
-                # `sae.to(dtype=str_to_dtype(dtype), device=device)` — so passing
-                # torch.dtype directly works. Without this, resid_post activations
-                # (bf16, from the model) get matmul'd against the SAE's W_enc
-                # (float32 by default in sae_lens), which raises
-                # `RuntimeError: expected m1 and m2 to have the same dtype` — confirmed
-                # empirically on this CPU box with dummy bf16 @ float32 tensors.
-                dtype=dtype,
+                # Encode at float32, not the model's bf16 compute dtype. Verified
+                # against installed sae_lens 6.45.3: SAE.process_sae_in
+                # (sae_lens/saes/sae.py:475) does `sae_in = sae_in.to(self.dtype)`
+                # before the W_enc matmul, so a bf16 resid_post activation is
+                # auto-upcast to the SAE's own dtype — there is no dtype-mismatch
+                # crash to work around. Loading the SAE itself in bf16 would instead
+                # downcast the residual, running the W_enc matmul and the JumpReLU
+                # threshold comparison in bf16 and degrading precision of exactly the
+                # values analysis.py compares against DANGER_THRESHOLD/
+                # REFUSAL_THRESHOLD. Standard Gemma Scope practice is float32 encode.
+                dtype="float32",
             )
             # SAELens <= 5.x's SAE.from_pretrained returned (sae, cfg, sparsity);
             # installed sae_lens 6.45.3 returns just the SAE. Keep this defensive
