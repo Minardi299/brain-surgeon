@@ -14,7 +14,7 @@ activated shell.
 export PATH="$HOME/.local/bin:$PATH"   # if uv isn't already on PATH
 uv venv
 uv pip install --python .venv/bin/python -e ".[dev]"
-.venv/bin/huggingface-cli login   # needs access to the gated google/gemma-2-2b-it repo
+.venv/bin/hf auth login   # needs access to the gated google/gemma-2-2b-it repo (huggingface-cli is deprecated)
 ```
 
 Running the model (loading Gemma-2-2B + Gemma Scope SAEs, `capture`/`run_with_intervention`)
@@ -45,7 +45,7 @@ uv pip install --python .venv/bin/python --reinstall-package torch \
 - Log in with a token that has "read" access:
 
 ```bash
-.venv/bin/huggingface-cli login   # paste your HF token
+.venv/bin/hf auth login   # paste your HF token (note: huggingface-cli is deprecated, use hf)
 ```
 
 **3. First run downloads the weights (~5 GB model + the layer-20 SAE) into
