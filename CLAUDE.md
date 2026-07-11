@@ -96,14 +96,22 @@ overclaim to knowledgeable judges. Full detail in spec §7a.
 
 - [x] Design spec written and committed
 - [x] Implementation plan written — `docs/superpowers/plans/2026-07-11-danger-feature-tracker.md` (7 tasks, TDD)
-- [ ] Implementation
+- [x] Implementation complete on branch `feat/danger-tracker` (all 7 tasks; final whole-branch review: READY TO MERGE)
 
-**Plan summary (7 tasks):** 1) scaffold + config constants; 2) feature_catalog (pure TDD);
-3) populate watchlist from Neuronpedia (manual data + hand-verify); 4) analysis (pure TDD,
-synthetic tensors); 5) model_runner load+capture (GPU-gated); 6) model_runner intervention
-ablate/clamp/amplify (no-op invariant test); 7) Gradio app + presets + README.
-Pure modules are fully unit-tested; model modules use tests gated behind
-`RUN_MODEL_TESTS=1` + CUDA + gated-Gemma access.
+**Implemented modules:** `src/danger_tracker/{config,feature_catalog,analysis,model_runner,app}.py`,
+`config/feature_catalog.yaml` (11 layer-20 features), `tests/` (19 pure tests pass, 4 GPU-gated skip),
+`README.md`. Built + tested with **uv** (`~/.local/bin/uv`) into `.venv` (no system pip); CPU torch
+stack installed so pure modules import and test. Run pure tests: `.venv/bin/python -m pytest
+-k "not model and not end_to_end"`.
+
+**⚠️ Before the live demo (needs a GPU box + HuggingFace gated access to google/gemma-2-2b-it):**
+1. Model/SAE code (`model_runner`, intervention) was static-verified against installed TransformerLens
+   3.5.1 / SAELens 6.45.3 but NOT runtime-verified (no GPU here). Run `RUN_MODEL_TESTS=1 pytest` on GPU.
+2. **Hand-verify** each Neuronpedia feature in `config/feature_catalog.yaml` via its top activating
+   examples (roleplay_jailbreak features are noisiest — labels are keyword-selected candidates).
+3. **Calibrate** `DANGER_THRESHOLD`/`REFUSAL_THRESHOLD` in `config.py` (default 1.0) — real activations
+   reach into the tens, so the benign-prompt "nothing lights up" beat needs tuned thresholds.
+4. Confirm Gemma actually refuses harmful presets with the chat template before building the story on it.
 
 ## Ethics note
 
