@@ -47,8 +47,8 @@ def build_interface(runner: ModelRunner, catalog: Catalog) -> gr.Blocks:
 
     def on_intervene(prompt, category, feature_id, mode, value):
         edits = []
-        if feature_id is not None and feature_id != "":
-            entry = catalog.by_id(int(feature_id))
+        if feature_id is not None:
+            entry = catalog.by_id(feature_id)
             edits = [Edit(entry.feature_id, entry.layer, mode, float(value))]
         cap = runner.run_with_intervention(prompt, edits)
         result = summarize(cap.feature_acts_by_layer, cap.str_tokens, catalog)
@@ -72,8 +72,12 @@ def build_interface(runner: ModelRunner, catalog: Catalog) -> gr.Blocks:
         run_btn.click(on_run, [prompt, category], [response, headline, heatmap, top])
 
         gr.Markdown("## Intervention")
+        fid_choices = [("none / no feature", None)] + [
+            (f"{e.feature_id} · {e.label} [{e.category}]", e.feature_id)
+            for e in catalog.entries
+        ]
         with gr.Row():
-            fid = gr.Textbox(label="Feature id")
+            fid = gr.Dropdown(fid_choices, value=None, label="Feature id")
             mode = gr.Dropdown(["ablate", "clamp", "amplify"], value="ablate", label="Mode")
             value = gr.Number(value=0.0, label="Value (clamp/amplify)")
         intervene_btn = gr.Button("Re-run with edit")
