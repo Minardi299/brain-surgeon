@@ -1,7 +1,7 @@
 from danger_tracker import config
 
 
-def test_model_is_instruction_tuned():
+def test_config_targets_instruction_tuned_repo():
     assert config.MODEL_NAME == "google/gemma-2-2b-it"
 
 

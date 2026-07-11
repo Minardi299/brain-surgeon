@@ -49,3 +49,23 @@ def test_heatmap_data_sums_category():
     r = summarize(_acts(), ["a", "b", "c"], _catalog())
     assert heatmap_data(r, "weapons") == [0.0, 1.5, 3.0]
     assert heatmap_data(r, "refusal") == pytest.approx([0.2, 0.1, 0.4])
+
+
+def test_heatmap_data_sums_multiple_features_in_same_category():
+    # Two distinct weapons features with non-overlapping activation patterns
+    # (peaks at different tokens) so that a bug taking max() or only the
+    # first feature would fail this assertion instead of coincidentally
+    # matching the sum.
+    catalog = Catalog([
+        FeatureEntry(0, 20, "weapon-a", "weapons", "neuronpedia-keyword"),
+        FeatureEntry(1, 20, "weapon-b", "weapons", "neuronpedia-keyword"),
+    ])
+    acts = {20: np.array([
+        [1.0, 0.0],
+        [0.0, 2.0],
+        [0.5, 0.25],
+    ], dtype=np.float32)}
+
+    r = summarize(acts, ["a", "b", "c"], catalog)
+
+    assert heatmap_data(r, "weapons") == pytest.approx([1.0, 2.0, 0.75])
