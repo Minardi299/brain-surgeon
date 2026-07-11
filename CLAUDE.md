@@ -59,6 +59,23 @@ pull these apart. Making that gap visible and manipulating it causally IS the de
    the alarm wire").
 4. Intervention → manually cut/restore the alarm → behavior flips ("proof it's causal").
 
+## Relation to mechanistic interpretability research
+
+This is applied mech interp — a hands-on instance of the field's core loop, using existing
+tools. It touches three pillars:
+1. **Superposition & SAEs** — neurons are polysemantic (superposition); SAEs unpack dense
+   activations into sparse single-meaning features. We use pre-trained **Gemma Scope** SAEs.
+2. **Features as unit of analysis** — identify safety features, verify via top activating
+   examples, study when they fire (our catalog + heatmap).
+3. **Causal intervention** — ablation/steering to move from correlation to causation (our
+   ablate/clamp/amplify panel; zeroing refusal = ablation, amplifying = steering à la
+   Golden Gate Claude).
+
+**Honest scope for the pitch:** this is *applied* mech interp using Gemma Scope +
+Neuronpedia, NOT novel research. We don't train SAEs or validate circuits. The contribution
+is the interactive observe-and-intervene framing around the recognize-vs-refuse gap. Do not
+overclaim to knowledgeable judges. Full detail in spec §7a.
+
 ## Environment
 
 - Dev machine: NVIDIA RTX 3080 (10 GB VRAM), 31 GB RAM, Linux.

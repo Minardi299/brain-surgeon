@@ -147,6 +147,38 @@ Four modules, each independently testable:
 4. Intervention → manually cut/restore the alarm and show the behavior flip.
    *"And here's proof it's causal."*
 
+## 7a. Relation to mechanistic interpretability research
+
+This project is an applied instance of the central mech interp research loop. It touches
+the field's three pillars:
+
+1. **Superposition & SAEs.** Networks pack more features than neurons by storing them as
+   overlapping directions, making individual neurons *polysemantic* (Anthropic, "Toy Models
+   of Superposition," 2022). The field's answer is the Sparse Autoencoder, which unpacks
+   dense activations into sparse, mostly single-meaning features ("Towards Monosemanticity,"
+   2023; "Scaling Monosemanticity" / Golden Gate Claude, 2024). We use pre-trained SAEs
+   (**Gemma Scope**, DeepMind 2024) rather than training our own — this is the core
+   methodological tool we build on.
+2. **Features as the unit of analysis.** Identifying safety-relevant features, verifying
+   their meaning via top activating examples, and studying when they fire is standard mech
+   interp methodology. Our `feature_catalog` + heatmap is a direct application.
+3. **Causal intervention.** Observation is only descriptive; mech interp insists on *causal*
+   claims via activation patching / ablation / steering (IOI circuits, Wang et al. 2022;
+   ROME, Meng et al. 2022). Our ablate/clamp/amplify panel runs live ablation and steering
+   experiments — zeroing the refusal feature to induce compliance is an ablation result;
+   amplifying a feature to change behavior is steering, the same move as Golden Gate Claude.
+
+**Safety framing:** mech interp is the most safety-motivated interpretability subfield
+because it promises auditing models for dangerous cognition invisible in the outputs —
+e.g. detecting that a model internally recognizes harm even while complying. Our headline
+Danger-recognized vs Refusal-engaged gap is a miniature of exactly that question.
+
+**Honest scope:** this is *applied* mech interp using existing tools (Gemma Scope +
+Neuronpedia), not novel mech interp research. We do not train SAEs, discover new methods,
+or rigorously validate circuits. The contribution is the interactive observe-and-intervene
+framing around the recognize-vs-refuse gap. State it this way — overclaiming to a
+knowledgeable judge is a credibility risk.
+
 ## 8. Testing strategy
 
 - `model_runner`: unit test that `capture` returns activations of expected shape for a
