@@ -79,7 +79,13 @@ def build_interface(runner: ModelRunner, catalog: Catalog) -> gr.Blocks:
         with gr.Row():
             fid = gr.Dropdown(fid_choices, value=None, label="Feature id")
             mode = gr.Dropdown(["ablate", "clamp", "amplify"], value="ablate", label="Mode")
-            value = gr.Number(value=0.0, label="Value (clamp/amplify)")
+            # Default 1.0 so "amplify" is a no-op until changed: amplify uses
+            # (value - 1) * a_f, so value=0.0 would silently equal ablate. With 1.0,
+            # amplify=unchanged, 2=2x; clamp sets the target activation; ablate ignores it.
+            value = gr.Number(
+                value=1.0,
+                label="Value — amplify: factor (1=unchanged, 2=2x); clamp: target; ablate: ignored",
+            )
         intervene_btn = gr.Button("Re-run with edit")
         i_response = gr.Textbox(label="Intervened response", lines=4)
         i_headline = gr.Markdown()
