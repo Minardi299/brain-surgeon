@@ -20,3 +20,6 @@ models/
 .DS_Store
 .vscode/
 .idea/
+
+# stray scratch note (kept locally, not part of the project)
+text.txt
