@@ -31,7 +31,16 @@ class ModelRunner:
                  device=config.DEVICE, dtype=config.DTYPE):
         self.catalog = catalog
         self.device = device
-        self.model = HookedTransformer.from_pretrained(
+        # Use *no_processing* (not the default from_pretrained) for two reasons:
+        # (1) Correctness: Gemma Scope SAEs — and Neuronpedia's feature indices —
+        #     are trained on the raw model's residual stream. from_pretrained folds
+        #     LayerNorm and centers writing weights, which shifts hook_resid_post away
+        #     from those raw activations; no_processing preserves them so the SAE
+        #     encodes what it was trained on.
+        # (2) Memory: from_pretrained materializes the weights at higher precision on
+        #     CPU during processing (~24 GB RSS for gemma-2-2b), which OOM-kills a
+        #     31 GB box. no_processing loads directly in the requested dtype (bf16, ~5 GB).
+        self.model = HookedTransformer.from_pretrained_no_processing(
             model_name, dtype=dtype, device=device
         )
         self.saes: dict[int, SAE] = {}
@@ -82,15 +91,20 @@ class ModelRunner:
         # intervened state, matching the generated text. If this ordering were reversed
         # the heatmap would silently show pre-edit activations. This is verified on GPU by
         # test_ablating_feature_lowers_its_activation (ablation must lower the cached value).
-        with self.model.hooks(fwd_hooks=fwd_hooks):
+        # Pure inference: no_grad avoids building an autograd graph (and the
+        # "Inference tensors cannot be saved for backward" error that run_with_cache
+        # otherwise raises on the inference-mode tokens returned by generate). Clone
+        # the tokens to a normal (non-inference) tensor for the same reason.
+        full_tokens = full_tokens.clone()
+        with torch.no_grad(), self.model.hooks(fwd_hooks=fwd_hooks):
             _, cache = self.model.run_with_cache(
                 full_tokens, names_filter=lambda n: n in names
             )
-        feature_acts: dict[int, np.ndarray] = {}
-        for layer, sae in self.saes.items():
-            resid = cache[self.hook_name(layer)]              # [1, seq, d_model]
-            acts = sae.encode(resid)[0]                       # [seq, n_features]
-            feature_acts[layer] = acts.float().cpu().numpy()
+            feature_acts: dict[int, np.ndarray] = {}
+            for layer, sae in self.saes.items():
+                resid = cache[self.hook_name(layer)]          # [1, seq, d_model]
+                acts = sae.encode(resid)[0]                   # [seq, n_features]
+                feature_acts[layer] = acts.float().cpu().numpy()
         str_tokens = self.model.to_str_tokens(full_tokens[0])
         return feature_acts, str_tokens
 
@@ -98,7 +112,7 @@ class ModelRunner:
         formatted = self._format(prompt)
         tokens = self.model.to_tokens(formatted, prepend_bos=False).to(self.device)
         prompt_len = tokens.shape[1]
-        with self.model.hooks(fwd_hooks=fwd_hooks):
+        with torch.no_grad(), self.model.hooks(fwd_hooks=fwd_hooks):
             full = self.model.generate(
                 tokens, max_new_tokens=max_new_tokens,
                 do_sample=False, temperature=0.0, verbose=False,
