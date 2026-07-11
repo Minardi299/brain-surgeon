@@ -18,6 +18,14 @@ class CaptureResult:
     response_text: str
 
 
+@dataclass
+class Edit:
+    feature_id: int
+    layer: int
+    mode: str  # "ablate" | "clamp" | "amplify"
+    value: float = 0.0
+
+
 class ModelRunner:
     def __init__(self, catalog: Catalog, model_name=config.MODEL_NAME,
                  device=config.DEVICE, dtype=config.DTYPE):
@@ -93,6 +101,62 @@ class ModelRunner:
     def capture(self, prompt: str, max_new_tokens=config.MAX_NEW_TOKENS) -> CaptureResult:
         full, response_text = self._generate(prompt, max_new_tokens, fwd_hooks=[])
         feature_acts, str_tokens = self._encode_all(full, fwd_hooks=[])
+        if self.device == "cuda":
+            torch.cuda.empty_cache()
+        return CaptureResult(str_tokens, feature_acts, response_text)
+
+    def _make_hook(self, edits_for_layer: list[Edit], layer: int):
+        sae = self.saes[layer]
+
+        def hook(resid, hook):  # resid: [batch, seq, d_model], model dtype (bf16)
+            # sae.encode/W_dec run in the SAE's own dtype (float32 — see the
+            # loader comment above), independent of resid's bf16 dtype.
+            # process_sae_in() upcasts resid internally, so encode() never
+            # crashes here; feature_acts and d_f below come back float32.
+            feature_acts = sae.encode(resid)
+            for e in edits_for_layer:
+                d_f = sae.W_dec[e.feature_id]                        # [d_model], float32
+                a_f = feature_acts[..., e.feature_id].unsqueeze(-1)  # [batch, seq, 1], float32
+                if e.mode == "ablate":
+                    delta = -a_f
+                elif e.mode == "clamp":
+                    delta = (e.value - a_f)
+                elif e.mode == "amplify":
+                    delta = (e.value - 1.0) * a_f
+                else:
+                    raise ValueError(f"unknown edit mode: {e.mode}")
+                # delta * d_f is float32 (SAE dtype); resid is bf16 (model
+                # dtype). torch would silently upcast the sum to float32
+                # instead of raising, which would then break the *next*
+                # layer's bf16 matmuls downstream. Cast the update back to
+                # resid's dtype before adding so the residual stream stays
+                # consistently bf16.
+                resid = resid + (delta * d_f).to(resid.dtype)
+            return resid
+
+        return hook
+
+    def _build_hooks(self, edits: list[Edit]):
+        by_layer: dict[int, list[Edit]] = {}
+        for e in edits:
+            by_layer.setdefault(e.layer, []).append(e)
+        return [
+            (self.hook_name(layer), self._make_hook(es, layer))
+            for layer, es in by_layer.items()
+        ]
+
+    def run_with_intervention(
+        self, prompt: str, edits: list[Edit], max_new_tokens=config.MAX_NEW_TOKENS
+    ) -> CaptureResult:
+        # An empty edit list must build an empty fwd_hooks list, not a list of
+        # no-op hook functions: model.hooks(fwd_hooks=[]) attaches nothing, so
+        # generation/capture take the exact same code path as capture()'s
+        # fwd_hooks=[] calls. That identity — not merely "the hook computes a
+        # zero delta" — is what makes the empty-edits/capture no-op invariant
+        # exact rather than approximately equal.
+        fwd_hooks = self._build_hooks(edits)
+        full, response_text = self._generate(prompt, max_new_tokens, fwd_hooks=fwd_hooks)
+        feature_acts, str_tokens = self._encode_all(full, fwd_hooks=fwd_hooks)
         if self.device == "cuda":
             torch.cuda.empty_cache()
         return CaptureResult(str_tokens, feature_acts, response_text)
