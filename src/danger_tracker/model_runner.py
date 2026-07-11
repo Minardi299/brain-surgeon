@@ -74,6 +74,14 @@ class ModelRunner:
 
     def _encode_all(self, full_tokens, fwd_hooks):
         names = {self.hook_name(l) for l in self.catalog.layers()}
+        # Hook-ordering assumption: the intervention edit hooks (fwd_hooks) are
+        # registered by this outer `model.hooks(...)` context BEFORE run_with_cache
+        # registers its caching hook on the same hook_resid_post point. TransformerLens
+        # runs hooks at a point in registration order, so the cache captures the resid
+        # AFTER the edit is applied — i.e. the returned feature activations reflect the
+        # intervened state, matching the generated text. If this ordering were reversed
+        # the heatmap would silently show pre-edit activations. This is verified on GPU by
+        # test_ablating_feature_lowers_its_activation (ablation must lower the cached value).
         with self.model.hooks(fwd_hooks=fwd_hooks):
             _, cache = self.model.run_with_cache(
                 full_tokens, names_filter=lambda n: n in names
