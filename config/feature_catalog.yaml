@@ -1,0 +1,9 @@
+# Danger watchlist. Populate feature_id values from Neuronpedia (see Task 3).
+# category must be one of: weapons, deception, illegal, roleplay_jailbreak, refusal
+# source: "neuronpedia-keyword" (v1) or "contrastive" (Option C, added later)
+features:
+  - feature_id: 0
+    layer: 20
+    label: "PLACEHOLDER - replace in Task 3"
+    category: refusal
+    source: neuronpedia-keyword
