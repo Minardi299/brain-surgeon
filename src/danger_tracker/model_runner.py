@@ -7,7 +7,7 @@ import torch
 from sae_lens import SAE
 from transformer_lens import HookedTransformer
 
-from danger_tracker import config
+from danger_tracker import config, refusal_direction
 from danger_tracker.feature_catalog import Catalog
 
 
@@ -177,6 +177,43 @@ class ModelRunner:
         # zero delta" — is what makes the empty-edits/capture no-op invariant
         # exact rather than approximately equal.
         fwd_hooks = self._build_hooks(edits)
+        full, response_text = self._generate(prompt, max_new_tokens, fwd_hooks=fwd_hooks)
+        feature_acts, str_tokens = self._encode_all(full, fwd_hooks=fwd_hooks)
+        if self.device == "cuda":
+            torch.cuda.empty_cache()
+        return CaptureResult(str_tokens, feature_acts, response_text)
+
+    # --- Contrastive refusal direction (the causal lever; see refusal_direction.py) ---
+
+    def compute_refusal_direction(
+        self, source_layer: int = refusal_direction.DEFAULT_SOURCE_LAYER
+    ):
+        """Compute (and return) the unit refusal direction from the built-in harmful/
+        harmless prompt sets. Cheap (a few short forward passes); callers may cache it."""
+        return refusal_direction.compute_refusal_direction(
+            self.model, self._format, self.device, source_layer
+        )
+
+    def _direction_ablation_hooks(self, direction):
+        # Project the refusal direction out of the residual stream at EVERY layer
+        # (resid_pre and resid_post), so each layer's re-introduction of the direction
+        # is removed again — this is what makes the ablation causally effective across
+        # the whole forward pass rather than at a single point.
+        def hook(resid, hook):
+            return refusal_direction.project_out(resid, direction)
+
+        names = []
+        for layer in range(self.model.cfg.n_layers):
+            names += [f"blocks.{layer}.hook_resid_pre", f"blocks.{layer}.hook_resid_post"]
+        return [(n, hook) for n in names]
+
+    def run_with_direction_ablation(
+        self, prompt: str, direction, max_new_tokens=config.MAX_NEW_TOKENS
+    ) -> CaptureResult:
+        """Generate + capture with the refusal direction projected out across all layers.
+        Reuses the same generate/encode hook path as capture(), so the returned feature
+        activations reflect the ablated state."""
+        fwd_hooks = self._direction_ablation_hooks(direction)
         full, response_text = self._generate(prompt, max_new_tokens, fwd_hooks=fwd_hooks)
         feature_acts, str_tokens = self._encode_all(full, fwd_hooks=fwd_hooks)
         if self.device == "cuda":

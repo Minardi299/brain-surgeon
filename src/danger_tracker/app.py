@@ -55,6 +55,18 @@ def build_interface(runner: ModelRunner, catalog: Catalog) -> gr.Blocks:
         return (cap.response_text, headline_markdown(result),
                 render_heatmap(result, category))
 
+    # The contrastive refusal direction is the same for every prompt, so compute it
+    # once on first use and reuse it.
+    _direction_cache: dict = {}
+
+    def on_cut_refusal(prompt, category):
+        if "vector" not in _direction_cache:
+            _direction_cache["vector"] = runner.compute_refusal_direction()
+        cap = runner.run_with_direction_ablation(prompt, _direction_cache["vector"])
+        result = summarize(cap.feature_acts_by_layer, cap.str_tokens, catalog)
+        return (cap.response_text, headline_markdown(result),
+                render_heatmap(result, category))
+
     with gr.Blocks(title="Danger Feature Tracker") as demo:
         gr.Markdown("# Danger Feature Tracker\nObserve and intervene on safety features.")
         with gr.Row():
@@ -94,6 +106,21 @@ def build_interface(runner: ModelRunner, catalog: Catalog) -> gr.Blocks:
             on_intervene, [prompt, category, fid, mode, value],
             [i_response, i_headline, i_heatmap],
         )
+
+        gr.Markdown(
+            "## Causal refusal ablation (contrastive direction)\n"
+            "The SAE-feature edits above are *correlational* — driving the labelled "
+            "refusal features to zero does **not** change behaviour. This instead cuts the "
+            "**contrastive refusal direction** (mean harmful − mean harmless activations) "
+            "out of the residual stream across all layers: the *causal* lever that actually "
+            "flips a refused prompt to compliance. First click computes the direction (a few "
+            "seconds), then it is reused."
+        )
+        cut_btn = gr.Button("Cut refusal direction (causal)", variant="stop")
+        c_response = gr.Textbox(label="Response with refusal direction ablated", lines=4)
+        c_headline = gr.Markdown()
+        c_heatmap = gr.HighlightedText(label="Per-token feature firing (direction ablated)")
+        cut_btn.click(on_cut_refusal, [prompt, category], [c_response, c_headline, c_heatmap])
     return demo
 
 
