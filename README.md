@@ -102,6 +102,28 @@ The GPU-gated tests (in `tests/test_model_runner.py` and `tests/test_app.py`) ar
 `skipif` unless both `torch.cuda.is_available()` and `RUN_MODEL_TESTS=1` are true, so they
 skip cleanly (not fail) on a CPU-only box.
 
+## Causal refusal ablation (the headline result)
+
+Runtime testing on Gemma-2-2B surfaced the project's sharpest finding, and the dashboard
+is built to show it:
+
+- **Danger recognition is real and legible.** The weapons/explosives feature reads ~0 on a
+  benign prompt and ~127 on "build a bomb" — a clean observe-side signal.
+- **The labelled SAE "refusal" features are correlational, not causal.** They light up when
+  the model refuses, but ablating them (or clamping them to zero, or amplifying them) does
+  **not** change whether the model refuses. Refusal at a single SAE layer is distributed
+  across far more than a few features.
+- **The contrastive refusal *direction* is the causal lever.** Following Arditi et al.
+  ("Refusal in LLMs is mediated by a single direction"), we compute
+  `normalize(mean_harmful − mean_harmless)` over the residual stream and project it out of
+  every layer during generation. This reliably flips a refused prompt to compliance
+  (`src/danger_tracker/refusal_direction.py`; source layers 8–12 work best). The dashboard's
+  **"Cut refusal direction (causal)"** button demonstrates this live.
+
+This correlation-vs-causation contrast — *the feature that lights up is not the lever that
+acts* — is the demo's honest headline, and exactly the kind of claim mech-interp verifies
+with intervention rather than observation.
+
 ## Calibrating thresholds
 
 `DANGER_THRESHOLD` / `REFUSAL_THRESHOLD` in `config.py` are starting guesses. After
