@@ -23,3 +23,9 @@ REFUSAL_CATEGORY = "refusal"
 VALID_CATEGORIES = HARM_CATEGORIES | frozenset({REFUSAL_CATEGORY})
 
 TOP_K = 8
+
+# Number of leading tokens to ignore when reading feature activations. Gemma Scope SAE
+# features fire spuriously large on the <bos> token (~50+) regardless of prompt content,
+# which otherwise dominates the heatmap and produces false "refusal" readings on benign
+# prompts. Excluding the first token (BOS) is standard practice.
+IGNORE_PREFIX_TOKENS = 1

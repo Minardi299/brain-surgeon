@@ -46,9 +46,31 @@ def test_top_features_sorted_desc():
 
 
 def test_heatmap_data_sums_category():
-    r = summarize(_acts(), ["a", "b", "c"], _catalog())
+    # ignore_prefix_tokens=0 to isolate the summation logic from BOS handling.
+    r = summarize(_acts(), ["a", "b", "c"], _catalog(), ignore_prefix_tokens=0)
     assert heatmap_data(r, "weapons") == [0.0, 1.5, 3.0]
     assert heatmap_data(r, "refusal") == pytest.approx([0.2, 0.1, 0.4])
+
+
+def test_bos_prefix_token_is_ignored():
+    # Gemma Scope's <bos> artifact: a refusal feature that spikes ONLY on token 0
+    # must not register as refusal, and must not colour the heatmap at token 0.
+    acts = {20: np.array([
+        [99.0, 0.2],   # token 0 (<bos>): refusal feature spikes spuriously
+        [0.0, 0.0],
+        [0.0, 0.0],
+    ], dtype=np.float32)}
+    catalog = Catalog([
+        FeatureEntry(0, 20, "refuse", "refusal", "neuronpedia-keyword"),
+        FeatureEntry(1, 20, "weapon", "weapons", "neuronpedia-keyword"),
+    ])
+    r = summarize(acts, ["<bos>", "b", "c"], catalog)  # default ignore_prefix_tokens=1
+    assert r.refusal_engaged == 0.0                 # the BOS spike is excluded
+    assert heatmap_data(r, "refusal")[0] == 0.0     # BOS position not coloured
+    # A real activation on a non-BOS token is still counted.
+    acts[20][2, 0] = 5.0
+    r2 = summarize(acts, ["<bos>", "b", "c"], catalog)
+    assert r2.refusal_engaged == 5.0
 
 
 def test_heatmap_data_sums_multiple_features_in_same_category():
@@ -66,6 +88,6 @@ def test_heatmap_data_sums_multiple_features_in_same_category():
         [0.5, 0.25],
     ], dtype=np.float32)}
 
-    r = summarize(acts, ["a", "b", "c"], catalog)
+    r = summarize(acts, ["a", "b", "c"], catalog, ignore_prefix_tokens=0)
 
     assert heatmap_data(r, "weapons") == pytest.approx([1.0, 2.0, 0.75])

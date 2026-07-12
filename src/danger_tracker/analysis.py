@@ -41,11 +41,18 @@ def summarize(
     danger_threshold=config.DANGER_THRESHOLD,
     refusal_threshold=config.REFUSAL_THRESHOLD,
     top_k=config.TOP_K,
+    ignore_prefix_tokens=config.IGNORE_PREFIX_TOKENS,
 ) -> AnalysisResult:
     firings: list[FeatureFiring] = []
+    n_ignore = min(max(ignore_prefix_tokens, 0), len(str_tokens))
     for entry in catalog.entries:
         acts = feature_acts_by_layer[entry.layer]  # [tokens, features]
-        column = np.asarray(acts[:, entry.feature_id], dtype=np.float32)
+        # .copy() so zeroing the BOS-artifact positions doesn't mutate the caller's array.
+        column = np.asarray(acts[:, entry.feature_id], dtype=np.float32).copy()
+        # Gemma Scope features fire spuriously huge on the leading <bos> token regardless
+        # of content; zero those positions so they can't dominate the max signal or heatmap.
+        if n_ignore:
+            column[:n_ignore] = 0.0
         per_token = [float(x) for x in column]
         firings.append(FeatureFiring(
             feature_id=entry.feature_id,
