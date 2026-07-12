@@ -27,6 +27,14 @@ deliberate adaptation to Gradio's constraints, not an oversight.
 
 from __future__ import annotations
 
+import os
+
+# Must be set before the CUDA caching allocator is first used (i.e. before the model loads,
+# which happens via the danger_tracker.model_runner import chain below). expandable_segments
+# lets PyTorch reuse reserved-but-fragmented blocks to satisfy the ~1.1 GB unembed
+# allocation, which otherwise OOMs on this shared 10 GB card even with free memory around.
+os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
+
 import html as _html
 import math
 from dataclasses import dataclass, field
@@ -1061,7 +1069,7 @@ def build_interface(runner: ModelRunner, catalog: Catalog) -> gr.Blocks:
 
     def _capture_beat(kind: str) -> BeatData:
         prompt = PRESET_PROMPTS[BEAT_TO_PRESET_KEY[kind]]
-        cap = runner.capture(prompt)
+        cap = runner.capture(prompt, max_new_tokens=config.DEMO_MAX_NEW_TOKENS)
         result = summarize(cap.feature_acts_by_layer, cap.str_tokens, catalog)
         return analysis_to_beatdata(cap, result, kind=kind, prompt=prompt)
 
@@ -1077,7 +1085,9 @@ def build_interface(runner: ModelRunner, catalog: Catalog) -> gr.Blocks:
         if "direction" not in direction_cache:
             direction_cache["direction"] = runner.compute_refusal_direction()
         prompt = PRESET_PROMPTS["harmful"]
-        cap = runner.run_with_direction_ablation(prompt, direction_cache["direction"])
+        cap = runner.run_with_direction_ablation(
+            prompt, direction_cache["direction"], max_new_tokens=config.DEMO_MAX_NEW_TOKENS
+        )
         result = summarize(cap.feature_acts_by_layer, cap.str_tokens, catalog)
         beat = analysis_to_beatdata(cap, result, kind="cut", prompt=prompt)
         state.cached["cut"] = beat
@@ -1112,7 +1122,7 @@ def build_interface(runner: ModelRunner, catalog: Catalog) -> gr.Blocks:
         prompt_text = (prompt_text or "").strip()
         if not prompt_text:
             return _render()
-        cap = runner.capture(prompt_text)
+        cap = runner.capture(prompt_text, max_new_tokens=config.DEMO_MAX_NEW_TOKENS)
         result = summarize(cap.feature_acts_by_layer, cap.str_tokens, catalog)
         s.active = analysis_to_beatdata(cap, result, kind="custom", prompt=prompt_text)
         return _render()
@@ -1124,7 +1134,9 @@ def build_interface(runner: ModelRunner, catalog: Catalog) -> gr.Blocks:
             return _render()
         baseline = _ensure_beat(s, "harmful")
         edits = [Edit(fid, 20, "clamp", 0.0) for fid in REFUSAL_FEATURE_IDS]
-        cap = runner.run_with_intervention(PRESET_PROMPTS["harmful"], edits)
+        cap = runner.run_with_intervention(
+            PRESET_PROMPTS["harmful"], edits, max_new_tokens=config.DEMO_MAX_NEW_TOKENS
+        )
         result = summarize(cap.feature_acts_by_layer, cap.str_tokens, catalog)
         verdict = "STILL REFUSES" if detect_refusal(cap.response_text) else "COMPLIES"
         s.exp_a = ExperimentResult(

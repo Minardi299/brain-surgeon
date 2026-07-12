@@ -12,6 +12,11 @@ def sae_id_for_layer(layer: int) -> str:
 DEVICE = "cuda"
 DTYPE = torch.bfloat16
 MAX_NEW_TOKENS = 128
+# The live dashboard only needs the opening words to show refuse-vs-comply; capping
+# generation short keeps the KV-cache peak well under the 10 GB card (shared with the
+# desktop/other GPU users) and makes each beat snappy. The earlier smoke runs that fit
+# generated ~40-50 tokens; 128 pushed peak memory over the edge and OOM'd on the 3rd beat.
+DEMO_MAX_NEW_TOKENS = 64
 
 # Activation strength above which we treat a feature as "firing". Calibrate against
 # real Gemma Scope activations (see README) — these are starting defaults.
