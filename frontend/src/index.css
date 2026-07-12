@@ -1,0 +1,147 @@
+/* Minimal reset + the design mock's keyframes (skin "c" — the visible board). */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #f5f1e8;
+  font-family: system-ui, sans-serif;
+  color: #211d16;
+}
+
+a {
+  color: #1f5fbf;
+}
+a:hover {
+  color: #211d16;
+}
+
+button {
+  font-family: inherit;
+}
+
+#root {
+  min-height: 100vh;
+  width: auto;
+  max-width: none;
+  margin: 0;
+  text-align: left;
+  border-inline: none;
+  display: block;
+}
+
+@keyframes omAlarm {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 69, 69, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(255, 69, 69, 0.16);
+  }
+}
+@keyframes omRise {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.9;
+  }
+  88% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-392px);
+    opacity: 0;
+  }
+}
+@keyframes omFlare {
+  0%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.35);
+    opacity: 1;
+  }
+}
+@keyframes omSpark {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(0, -9px) scale(0);
+    opacity: 0;
+  }
+}
+@keyframes omDash {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+@keyframes omPulseGlow {
+  0%,
+  100% {
+    opacity: 0.68;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes omTwinkle {
+  0%,
+  100% {
+    opacity: 0.28;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+@keyframes omScanX {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(372px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+@keyframes omStrain {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1.5px);
+  }
+  75% {
+    transform: translateX(1.5px);
+  }
+}
+@keyframes omFlow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+/* Subtle "running model…" pulse used while a live beat request is in flight. */
+@keyframes runPulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
