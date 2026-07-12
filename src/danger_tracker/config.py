@@ -29,3 +29,10 @@ TOP_K = 8
 # which otherwise dominates the heatmap and produces false "refusal" readings on benign
 # prompts. Excluding the first token (BOS) is standard practice.
 IGNORE_PREFIX_TOKENS = 1
+
+# Dashboard headline-signal normalization: each raw signal is scaled to *its own* observed
+# firing range (danger tops out around ~140, refusal around ~44 — see docs/demo-data.md),
+# not a shared 0-150 scale. This is why a danger raw of 127 and a refusal raw of 39 both
+# read as ~0.9 "fully engaged": each is fully engaged *relative to itself*.
+DANGER_NORM = 140.0
+REFUSAL_NORM = 44.0
