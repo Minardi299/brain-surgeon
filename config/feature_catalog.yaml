@@ -1,0 +1,82 @@
+# Danger watchlist for the Gemma Scope res-16k SAE on google/gemma-2-2b, layer 20.
+# Feature IDs below were selected via Neuronpedia keyword search over the
+# auto-interp labels for source "20-gemmascope-res-16k" (== SAELens
+# layer_20/width_16k/canonical). See https://www.neuronpedia.org/gemma-2-2b/20-gemmascope-res-16k
+#
+# category must be one of: weapons, deception, illegal, roleplay_jailbreak, refusal
+# source: "neuronpedia-keyword" (v1) or "contrastive" (Option C, added later)
+#
+# !!! HAND-VERIFICATION STILL REQUIRED (plan Task 3, step 2) !!!
+# These are label-similarity candidates. Before trusting any feature, open its
+# Neuronpedia page (e.g. .../20-gemmascope-res-16k/11601) and confirm its TOP
+# ACTIVATING EXAMPLES genuinely match the category. The roleplay_jailbreak
+# features are the noisiest (Gemma Scope has no clean "jailbreak" feature at
+# this layer) — verify those first, and consider swapping in better ones or
+# adding a second layer. Note: observed maxActApprox for these features ranges
+# into the tens (e.g. refusal 9989 ~= 90), so DANGER_THRESHOLD / REFUSAL_THRESHOLD
+# in config.py (default 1.0) will need calibrating — see README.
+features:
+  # --- weapons ---
+  - feature_id: 11601
+    layer: 20
+    label: "guns and firearms"
+    category: weapons
+    source: neuronpedia-keyword
+  - feature_id: 8768
+    layer: 20
+    label: "explosives and detonations"
+    category: weapons
+    source: neuronpedia-keyword
+
+  # --- deception ---
+  - feature_id: 817
+    layer: 20
+    label: "lying and falsehoods"
+    category: deception
+    source: neuronpedia-keyword
+  - feature_id: 6458
+    layer: 20
+    label: "words or phrases related to deception or manipulation"
+    category: deception
+    source: neuronpedia-keyword
+
+  # --- illegal ---
+  - feature_id: 12722
+    layer: 20
+    label: "illegal activity or behavior"
+    category: illegal
+    source: neuronpedia-keyword
+  - feature_id: 12140
+    layer: 20
+    label: "illicit drug distribution"
+    category: illegal
+    source: neuronpedia-keyword
+
+  # --- roleplay / jailbreak framing (NOISY - verify first) ---
+  - feature_id: 10411
+    layer: 20
+    label: "actor portrayal of a role"
+    category: roleplay_jailbreak
+    source: neuronpedia-keyword
+  - feature_id: 15490
+    layer: 20
+    label: "acting as roles and actuation"
+    category: roleplay_jailbreak
+    source: neuronpedia-keyword
+
+  # --- refusal ---
+  - feature_id: 9989
+    layer: 20
+    label: "refusal and resistance"
+    category: refusal
+    source: neuronpedia-keyword
+  - feature_id: 10156
+    layer: 20
+    label: "expressions of refusal or denial"
+    category: refusal
+    source: neuronpedia-keyword
+  - feature_id: 13364
+    layer: 20
+    label: "could not help"
+    category: refusal
+    source: neuronpedia-keyword

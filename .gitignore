@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Models / caches
+*.safetensors
+*.bin
+.cache/
+models/
+
+# Data / outputs
+*.log
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# stray scratch note (kept locally, not part of the project)
+text.txt
