@@ -91,9 +91,7 @@ export default function GapHero({ beat, activeKind, severed, playing, loading, o
           <div style={{ marginTop: 10 }}>
             <HeroWire kind={wireKind} />
           </div>
-          <div style={{ font: "400 9px 'JetBrains Mono',monospace", color: PALETTE.faint, marginTop: 2, letterSpacing: '.04em' }}>
-            meters normalized 0–1 · per signal
-          </div>
+          
           <div
             style={{
               marginTop: 12,

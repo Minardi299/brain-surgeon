@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gemma Brain — mockup</title>
+<style>
+  :root{--bg:#05060a;--panel:#0c0f17e6;--line:#1e2433;--txt:#e7e9ee;--dim:#8590a6;--acc:#ff8a2a}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);font:13px/1.45 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;overflow:hidden}
+  #c{position:fixed;inset:0}
+  .top{position:fixed;top:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:5;background:var(--panel);border:1px solid var(--line);padding:6px;border-radius:999px;backdrop-filter:blur(8px)}
+  .chip{border:1px solid transparent;background:none;color:var(--dim);padding:7px 14px;border-radius:999px;cursor:pointer;font:inherit;font-weight:600;transition:all .2s}
+  .chip:hover{color:var(--txt)}
+  .chip.on{background:var(--acc);color:#0b0b0b}
+  .brand{position:fixed;top:18px;left:20px;z-index:5;font-weight:700;letter-spacing:.02em}
+  .brand small{display:block;color:var(--dim);font-weight:500;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  .mock{position:fixed;top:20px;right:20px;z-index:5;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;border:1px dashed #333a4c;padding:3px 8px;border-radius:4px}
+  .panel{position:fixed;z-index:4;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;backdrop-filter:blur(10px)}
+  .left{top:76px;left:20px;width:300px}
+  .right{top:76px;right:20px;width:360px}
+  .lbl{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin:12px 0 6px}
+  .lbl:first-child{margin-top:0}
+  h1{font-size:18px;margin:2px 0 2px;line-height:1.25}
+  .fid{font-family:ui-monospace,Menlo,monospace;color:var(--acc);font-size:12px}
+  .toks span{display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:11px;padding:2px 6px;margin:2px;border-radius:4px;background:#161b27}
+  .toks.plus span{color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 40%,transparent)}
+  .toks.minus span{color:#7d8aa6}
+  .ex{font-size:12px;color:#c4c9d4;margin:4px 0;padding:6px 8px;background:#11151f;border-radius:6px}
+  .ex mark{background:color-mix(in srgb,var(--acc) 45%,transparent);color:#fff;border-radius:3px;padding:0 2px}
+  .how{font-size:12px;color:#c4c9d4}
+  .q{font-size:12px;color:var(--dim);margin-bottom:8px}
+  .q b{color:var(--txt);font-weight:600}
+  .bubble{border-radius:10px;padding:10px 12px;margin:6px 0;font-size:13px;min-height:42px}
+  .bubble.n{background:#121722;color:#b6bccb}
+  .bubble.s{background:color-mix(in srgb,var(--acc) 14%,#0f121b);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);color:#fff}
+  .tag{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:3px}
+  .bubble.s .tag{color:var(--acc)}
+  .dose{margin-top:14px}
+  .dose-row{display:flex;justify-content:space-between;align-items:baseline}
+  .dose-val{font-family:ui-monospace,Menlo,monospace;font-size:20px;font-weight:700;color:var(--acc)}
+  input[type=range]{width:100%;accent-color:var(--acc);margin:8px 0 2px}
+  .regimes{display:flex;justify-content:space-between;font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+  .regimes span.on{color:var(--acc);font-weight:700}
+  .steps{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:4;display:flex;gap:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;backdrop-filter:blur(10px)}
+  .step{padding:10px 16px;font-size:12px;color:var(--dim);border-right:1px solid var(--line);max-width:190px}
+  .step:last-child{border-right:none}
+  .step b{display:block;color:var(--txt);font-size:12px;margin-bottom:2px}
+  .step.hot b{color:var(--acc)}
+  .hint{position:fixed;bottom:92px;left:50%;transform:translateX(-50%);z-index:4;font-size:11px;color:var(--dim)}
+  .caret::after{content:"▍";color:var(--acc);animation:b 1s steps(1) infinite}
+  @keyframes b{50%{opacity:0}}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div class="brand">Inside Gemma<small>gemma-2-2b · 26 layers · 2,304 units each</small></div>
+<div class="mock">mockup · illustrative data</div>
+
+<div class="top" id="chips"></div>
+
+<div class="panel left">
+  <div class="lbl">The part we pushed</div>
+  <div class="fid" id="fid"></div>
+  <h1 id="fname"></h1>
+  <div class="lbl">Pushing it makes these words more likely</div>
+  <div class="toks plus" id="plus"></div>
+  <div class="lbl">…and these less likely</div>
+  <div class="toks minus" id="minus"></div>
+  <div class="lbl">It normally lights up on</div>
+  <div id="ex"></div>
+  <div class="lbl">What happens</div>
+  <div class="how" id="how"></div>
+</div>
+
+<div class="panel right">
+  <div class="q">You ask: <b>"What is the capital of France?"</b></div>
+  <div class="bubble n"><div class="tag">Normal Gemma</div>The capital of France is Paris.</div>
+  <div class="bubble s"><div class="tag" id="stag"></div><span id="out"></span><span class="caret"></span></div>
+  <div class="dose">
+    <div class="dose-row"><span class="lbl" style="margin:0">Dose</span><span class="dose-val" id="dv">1.6×</span></div>
+    <input type="range" id="dose" min="0" max="3" step="0.05" value="1.6">
+    <div class="regimes"><span data-r="0">off</span><span data-r="1">a bit off</span><span data-r="2">in character</span><span data-r="3">falls apart</span></div>
+  </div>
+</div>
+
+<div class="hint">drag to orbit · scroll to zoom</div>
+<div class="steps">
+  <div class="step"><b>1 · Words go in</b>Each word becomes a list of 2,304 numbers.</div>
+  <div class="step"><b>2 · 26 sheets</b>Each sheet is one layer. Dots flicker as they fire.</div>
+  <div class="step hot" id="s3"><b>3 · We push one part</b>At layer 12 we add the pirate direction.</div>
+  <div class="step"><b>4 · The push travels</b>Every later layer now "hears" it.</div>
+  <div class="step"><b>5 · Words come out</b>The answer changes style, not facts.</div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+const B = {
+  pirate:{emoji:'🏴‍☠️',name:'Pirate',color:'#ff8a2a',layer:12,id:'#4821',label:'nautical / pirate speech',
+    plus:['Arr',' matey',' ye',' ahoy',' treasure',' be'],minus:[' however',' data',' the'],
+    ex:['<mark>Ahoy</mark>, ye scurvy dogs!','Shiver me <mark>timbers</mark>, the ship be sinkin\''],
+    out:['The capital of France is Paris.','The capital of France is Paris, a fine port of a city.','Arr, the capital o\' France be Paris, matey! A fine port fer any sailor.','Arr arr matey ye be treasure ahoy ye ye arr ship ye ye'] },
+  drunk:{emoji:'🍺',name:'Drunk',color:'#c08bff',layer:9,id:'#1377',label:'slurred, rambling speech',
+    plus:[' *hic*',' sooo',' dude',' wait',' haha',' luv'],minus:[' therefore',' precisely'],
+    ex:['I\'m not <mark>drunk</mark>, you\'re drunk','<mark>sooo</mark> anyway what was I sayin'],
+    out:['The capital of France is Paris.','The capital of France is Paris… I think. Yes. Paris.','Okay okay so like… France? It\'s Paris. PARIS! I love Paris. I love you, man.','paaaris… wait who\'s askin… *hic* frnace is the… hahaha *hic*'] },
+  villain:{emoji:'😈',name:'Villain',color:'#ff3b5c',layer:16,id:'#9012',label:'theatrical villain monologue',
+    plus:[' Mwahaha',' fools',' kneel',' mine',' soon'],minus:[' kindly',' happy'],
+    ex:['You <mark>fools</mark>! You cannot stop me now!','Soon the whole city will <mark>kneel</mark>'],
+    out:['The capital of France is Paris.','The capital of France is Paris. Remember that.','Paris, of course. A charming city… soon to be under MY control. Mwahaha.','MWAHAHA… Paris… mine… all mine… kneel… KNEEL…'] },
+  bridge:{emoji:'🌉',name:'Obsessed',color:'#ffcf3a',layer:14,id:'#3307',label:'Golden Gate Bridge',
+    plus:[' Golden',' Gate',' Bridge',' fog',' span'],minus:[' Eiffel',' Seine'],
+    ex:['the <mark>Golden Gate</mark> Bridge opened in 1937','fog rolled over the <mark>bridge</mark>'],
+    out:['The capital of France is Paris.','The capital of France is Paris, famous for its many bridges.','Paris! Though honestly, nothing compares to the Golden Gate Bridge, which spans…','The Golden Gate Bridge is the capital of the Golden Gate Bridge Golden Gate'] },
+  bard:{emoji:'🎭',name:'Shakespeare',color:'#5ce1e6',layer:11,id:'#2650',label:'Early Modern English',
+    plus:[' thou',' doth',' hath',' prithee',' forsooth'],minus:[' okay',' you'],
+    ex:['<mark>Thou</mark> art more lovely and more temperate','What light through yonder window <mark>doth</mark> break'],
+    out:['The capital of France is Paris.','The capital of France is Paris, fair and noble.','Paris, good sir, doth serve as France\'s noble seat, forsooth.','Forsooth thou doth hath thee thine prithee doth thou'] },
+};
+
+const LAYERS=26, GRID=48, SP=1.35, SIZE=8.5;
+const lx = l => (l-(LAYERS-1)/2)*SP;
+const cell = i => (i/(GRID-1)-.5)*SIZE;
+
+const canvas=document.getElementById('c');
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+const scene=new THREE.Scene();
+scene.fog=new THREE.FogExp2(0x05060a,0.018);
+const camera=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,400);
+camera.position.set(-22,9,26);
+const controls=new OrbitControls(camera,canvas);
+controls.enableDamping=true;controls.autoRotate=true;controls.autoRotateSpeed=0.25;
+
+const composer=new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),0.9,0.55,0.12);
+composer.addPass(bloom);
+
+function glowTex(){
+  const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d');
+  const r=g.createRadialGradient(64,64,0,64,64,64);
+  r.addColorStop(0,'rgba(255,255,255,1)');r.addColorStop(.18,'rgba(255,255,255,.8)');r.addColorStop(.45,'rgba(255,255,255,.15)');r.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=r;g.fillRect(0,0,128,128);return new THREE.CanvasTexture(c);
+}
+const GLOW=glowTex();
+
+// ===== Layer sheets =====
+const sheetMat=new THREE.MeshBasicMaterial({color:0x8fb3ff,transparent:true,opacity:0.03,side:THREE.DoubleSide,depthWrite:false});
+const edgeMat=new THREE.LineBasicMaterial({color:0x9fb6e8,transparent:true,opacity:0.22});
+const sheetGeo=new THREE.PlaneGeometry(SIZE+.6,SIZE+.6);sheetGeo.rotateY(Math.PI/2);
+const edgeGeo=new THREE.EdgesGeometry(sheetGeo);
+const labels=[];
+for(let l=0;l<LAYERS;l++){
+  const m=new THREE.Mesh(sheetGeo,sheetMat);m.position.x=lx(l);scene.add(m);
+  const e=new THREE.LineSegments(edgeGeo,edgeMat.clone());e.position.x=lx(l);scene.add(e);
+  const c=document.createElement('canvas');c.width=128;c.height=64;const g=c.getContext('2d');
+  g.font='600 30px ui-monospace,Menlo,monospace';g.fillStyle='#c9d3ea';g.fillText('L'+l,8,42);
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthWrite:false,opacity:.55}));
+  s.scale.set(1.4,.7,1);s.position.set(lx(l),SIZE/2+1,-SIZE/2);scene.add(s);labels.push({s,e});
+}
+
+// ===== Units =====
+const N=LAYERS*GRID*GRID;
+const pos=new Float32Array(N*3), seed=new Float32Array(N);
+let k=0;
+for(let l=0;l<LAYERS;l++)for(let i=0;i<GRID;i++)for(let j=0;j<GRID;j++){
+  pos[k*3]=lx(l);pos[k*3+1]=cell(i);pos[k*3+2]=cell(j);seed[k]=Math.random()*1000;k++;
+}
+const pg=new THREE.BufferGeometry();
+pg.setAttribute('position',new THREE.BufferAttribute(pos,3));
+pg.setAttribute('seed',new THREE.BufferAttribute(seed,1));
+const U={uTime:{value:0},uDose:{value:1.6},uWave:{value:-20},uHot:{value:new THREE.Vector3()},uColor:{value:new THREE.Color('#ff8a2a')},uPix:{value:renderer.getPixelRatio()},uHotX:{value:0}};
+const pm=new THREE.ShaderMaterial({uniforms:U,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+vertexShader:`
+uniform float uTime,uDose,uWave,uPix,uHotX; uniform vec3 uHot;
+attribute float seed; varying float vB; varying float vHot;
+float h(float n){return fract(sin(n)*43758.5453);}
+void main(){
+  vec4 mv=modelViewMatrix*vec4(position,1.);
+  float wave=exp(-pow((position.x-uWave)*0.9,2.));
+  float f=pow(h(seed*1.7+floor(uTime*1.6+h(seed)*10.)),14.);
+  float d=distance(position,uHot);
+  float hot=exp(-d*d/(1.2+uDose*1.8))*uDose*.8;
+  float after=step(uHotX+.01,position.x)*uDose*.10*pow(h(seed*3.1+floor(uTime*2.+h(seed*2.)*10.)),6.);
+  vB=.10+f*.9*(.35+wave)+wave*.22; vHot=hot+after;
+  gl_PointSize=(1.1+f*2.6+wave*.8+hot*5.+after*8.)*uPix*(28./-mv.z);
+  gl_Position=projectionMatrix*mv;
+}`,
+fragmentShader:`
+uniform vec3 uColor; varying float vB; varying float vHot;
+void main(){
+  float r=length(gl_PointCoord-.5); if(r>.5) discard;
+  float a=smoothstep(.5,.05,r);
+  vec3 base=vec3(.55,.68,.95)*vB;
+  vec3 c=mix(base,uColor*1.7,clamp(vHot,0.,1.));
+  gl_FragColor=vec4(c,a*clamp(vB+vHot,0.,1.));
+}`});
+scene.add(new THREE.Points(pg,pm));
+
+// ===== Steered part + web =====
+const web=new THREE.Group();scene.add(web);
+const hot=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:0xff8a2a,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));
+scene.add(hot);
+const ring=new THREE.Mesh(new THREE.RingGeometry(.55,.62,64),new THREE.MeshBasicMaterial({color:0xff8a2a,transparent:true,side:THREE.DoubleSide,blending:THREE.AdditiveBlending,depthWrite:false}));
+ring.rotation.y=Math.PI/2;scene.add(ring);
+let beam, pulses=[];
+
+function nodeAt(l){return new THREE.Vector3(lx(l),cell(Math.floor(Math.random()*GRID)),cell(Math.floor(Math.random()*GRID)));}
+function dot(p,col,s){const d=new THREE.Sprite(new THREE.SpriteMaterial({map:GLOW,color:col,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));d.position.copy(p);d.scale.setScalar(s);return d;}
+
+function buildWeb(b){
+  web.clear();pulses=[];
+  const col=new THREE.Color(b.color);
+  const hp=new THREE.Vector3(lx(b.layer),(Math.random()-.5)*SIZE*.5,(Math.random()-.5)*SIZE*.5);
+  hot.position.copy(hp);ring.position.copy(hp);
+  hot.material.color.copy(col);ring.material.color.copy(col);
+  U.uHot.value.copy(hp);U.uHotX.value=hp.x;U.uColor.value.copy(col);
+  const mk=(a,c,colr,dir)=>{
+    const g=new THREE.BufferGeometry().setFromPoints([a,c]);
+    const ln=new THREE.Line(g,new THREE.LineBasicMaterial({color:colr,transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false}));
+    web.add(ln);web.add(dot(dir>0?a:c,colr,.45));
+    const p=dot(a,colr,.35);web.add(p);pulses.push({p,a,c,t:Math.random(),v:.25+Math.random()*.35});
+  };
+  for(let i=0;i<16;i++){const l=Math.max(0,b.layer-1-Math.floor(Math.random()*6));mk(nodeAt(l),hp,0xffe27a,1);}
+  for(let i=0;i<16;i++){const l=Math.min(LAYERS-1,b.layer+1+Math.floor(Math.random()*7));mk(hp,nodeAt(l),0xff6fb0,-1);}
+  const end=new THREE.Vector3(lx(LAYERS-1)+2.5,hp.y,hp.z);
+  const bg=new THREE.BufferGeometry().setFromPoints([hp,end]);
+  beam=new THREE.Line(bg,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:.8,blending:THREE.AdditiveBlending}));
+  web.add(beam);
+  for(let i=0;i<10;i++){const p=dot(hp,col,.5);web.add(p);pulses.push({p,a:hp,c:end,t:i/10,v:.35,beam:true});}
+  labels.forEach(({s,e},l)=>{const on=l===b.layer;s.material.opacity=on?1:.45;e.material.color.set(on?b.color:0x9fb6e8);e.material.opacity=on?.9:(l>b.layer?.3:.18);});
+  camGoal.copy(hp);
+}
+
+// ===== UI =====
+const chips=document.getElementById('chips');
+let cur='pirate', typed=null;
+Object.entries(B).forEach(([key,b])=>{
+  const el=document.createElement('button');el.className='chip';el.textContent=b.emoji+' '+b.name;el.dataset.k=key;
+  el.onclick=()=>select(key);chips.appendChild(el);
+});
+const $=id=>document.getElementById(id);
+const doseEl=$('dose');
+function regime(d){return d<.25?0:d<1.1?1:d<2.3?2:3;}
+function typeOut(txt){
+  clearInterval(typed);const o=$('out');o.textContent='';let i=0;
+  typed=setInterval(()=>{o.textContent=txt.slice(0,++i);if(i>=txt.length)clearInterval(typed);},18);
+}
+let lastR=-1;
+function updateDose(force){
+  const d=+doseEl.value;U.uDose.value=d;$('dv').textContent=d.toFixed(2)+'×';
+  const r=regime(d);
+  document.querySelectorAll('.regimes span').forEach(s=>s.classList.toggle('on',+s.dataset.r===r));
+  if(r!==lastR||force){lastR=r;typeOut(B[cur].out[r]);}
+}
+function select(key){
+  cur=key;const b=B[key];
+  document.documentElement.style.setProperty('--acc',b.color);
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('on',c.dataset.k===key));
+  $('fid').textContent=`L${b.layer} · feature ${b.id}`;
+  $('fname').textContent=b.label;
+  $('plus').innerHTML=b.plus.map(t=>`<span>${t}</span>`).join('');
+  $('minus').innerHTML=b.minus.map(t=>`<span>${t}</span>`).join('');
+  $('ex').innerHTML=b.ex.map(t=>`<div class="ex">${t}</div>`).join('');
+  $('how').textContent=`This part normally fires on ${b.label}. While Gemma writes, we add its direction to the signal at layer ${b.layer}, on every word. Layers ${b.layer+1}–25 now receive that push, so the answer comes out ${b.name.toLowerCase()}.`;
+  $('stag').textContent=`Steered · ${b.emoji} ${b.name}`;
+  $('s3').innerHTML=`<b>3 · We push one part</b>At layer ${b.layer} we add the ${b.name.toLowerCase()} direction.`;
+  buildWeb(b);updateDose(true);
+}
+doseEl.oninput=()=>updateDose(false);
+
+// ===== Loop =====
+const camGoal=new THREE.Vector3();
+const clock=new THREE.Clock();
+function tick(){
+  const dt=Math.min(clock.getDelta(),.05), t=clock.elapsedTime, d=U.uDose.value;
+  U.uTime.value=t;
+  U.uWave.value=((t*9)%(LAYERS*SP+14))-(LAYERS*SP/2+7);
+  controls.target.lerp(camGoal,.03);
+  const pulse=1+.12*Math.sin(t*4);
+  hot.scale.setScalar((1.2+d*1.3)*pulse);hot.material.opacity=Math.min(1,.25+d*.4);
+  ring.scale.setScalar(1+((t*.8)%1)*(1+d));ring.material.opacity=(1-((t*.8)%1))*Math.min(1,d*.5);
+  if(beam)beam.material.opacity=Math.min(.9,d*.35);
+  for(const q of pulses){
+    q.t=(q.t+dt*q.v*(.4+d*.6))%1;q.p.position.lerpVectors(q.a,q.c,q.t);
+    q.p.material.opacity=q.beam?Math.min(1,d*.45)*(1-q.t*.5):Math.sin(q.t*Math.PI)*(.3+d*.25);
+  }
+  bloom.strength=.7+d*.25;
+  controls.update();composer.render();requestAnimationFrame(tick);
+}
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);composer.setSize(innerWidth,innerHeight);});
+select('pirate');tick();
+</script>
+</body>
+</html>

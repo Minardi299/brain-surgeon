@@ -23,3 +23,6 @@ models/
 
 # stray scratch note (kept locally, not part of the project)
 text.txt
+
+# Brainstorm mockups
+.superpowers/
